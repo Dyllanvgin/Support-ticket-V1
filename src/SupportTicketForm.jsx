@@ -26,7 +26,7 @@ const DESCRIPTION_OPTIONS = [
 ]
 
 const TICKET_BOARD_ID = '9575288798' // keep as is
-const API_BASE_URL = 'http://192.168.10.207:4000' // your dev machine's IP
+const API_BASE_URL = 'https://support-ticket-backend-v1.onrender.com' // your dev machine's IP
 
 export default function SupportTicketForm() {
   const [searchParams] = useSearchParams()
