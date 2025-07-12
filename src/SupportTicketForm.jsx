@@ -20,6 +20,7 @@ import {
   ModalHeader,
   Progress,
   useDisclosure,
+  Spinner,
 } from '@chakra-ui/react'
 
 const DESCRIPTION_OPTIONS = [
@@ -32,8 +33,8 @@ const DESCRIPTION_OPTIONS = [
   'Other'
 ]
 
-const TICKET_BOARD_ID = '9575288798' // keep as is
-const API_BASE_URL = 'https://support-ticket-backend-v1.onrender.com' // your backend URL
+const TICKET_BOARD_ID = '9575288798'
+const API_BASE_URL = 'https://support-ticket-backend-v1.onrender.com'
 
 export default function SupportTicketForm() {
   const [searchParams] = useSearchParams()
@@ -49,6 +50,7 @@ export default function SupportTicketForm() {
   const [contactNumber, setContactNumber] = useState('')
   const [contactEmail, setContactEmail] = useState('')
   const [ticketSubmitted, setTicketSubmitted] = useState(false)
+  const [photosUploading, setPhotosUploading] = useState(false)
   const { isOpen, onOpen, onClose } = useDisclosure()
 
   useEffect(() => {
@@ -97,7 +99,9 @@ export default function SupportTicketForm() {
 
     const response = await fetch(`${API_BASE_URL}/create-item`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({
         boardId: TICKET_BOARD_ID,
         itemName: storeName,
@@ -108,9 +112,7 @@ export default function SupportTicketForm() {
     const result = await response.json()
 
     if (result.error) throw new Error('Create main item failed: ' + result.error)
-    if (result.errors)
-      throw new Error('Create main item failed: ' +
-        result.errors.map((e) => e.message).join('; '))
+    if (result.errors) throw new Error('Create main item failed: ' + result.errors.map((e) => e.message).join('; '))
 
     const itemId = result.data?.create_item?.id
     if (!itemId) throw new Error('No item ID returned from create_item mutation')
@@ -129,7 +131,9 @@ export default function SupportTicketForm() {
 
     const response = await fetch(`${API_BASE_URL}/create-subitem`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({
         parentItemId: parentId,
         itemName: screen.name || 'Unnamed Screen',
@@ -140,9 +144,7 @@ export default function SupportTicketForm() {
     const result = await response.json()
 
     if (result.error) throw new Error('Subitem creation failed: ' + result.error)
-    if (result.errors)
-      throw new Error('Subitem creation failed: ' +
-        result.errors.map((e) => e.message).join('; '))
+    if (result.errors) throw new Error('Subitem creation failed: ' + result.errors.map((e) => e.message).join('; '))
 
     const subitemId = result.data?.create_subitem?.id
     if (!subitemId) throw new Error('No item ID returned from create_subitem mutation')
@@ -159,33 +161,45 @@ export default function SupportTicketForm() {
 
     const response = await fetch(
       `${API_BASE_URL}/upload?item_id=${subitemId}&column_id=${columnId}`,
-      { method: 'POST', body: formData }
+      {
+        method: 'POST',
+        body: formData
+      }
     )
 
     const result = await response.json()
-    if (result.errors)
-      throw new Error('File upload failed: ' + result.errors.map((e) => e.message).join('; '))
-
+    if (result.errors) throw new Error('File upload failed: ' + result.errors.map((e) => e.message).join('; '))
     return result
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    onOpen() // Show loading modal
+    onOpen() // open loading modal
     try {
       const mainItemId = await createMainItem()
+
+      const subitems = []
       for (const screen of screens) {
         const subitemId = await createSubitem(mainItemId, screen)
-        if (screen.photo) {
-          await uploadPhoto(subitemId, screen.photo)
-        }
+        subitems.push({ id: subitemId, photo: screen.photo })
       }
-      setTicketSubmitted(true)
+
+      setTicketSubmitted(true) // show success immediately
+
+      setPhotosUploading(true)
+      await Promise.all(
+        subitems
+          .filter(({ photo }) => photo)
+          .map(({ id, photo }) => uploadPhoto(id, photo))
+      )
+      setPhotosUploading(false)
+
     } catch (err) {
       alert('Ticket submission failed. See console for details.')
       console.error('Ticket submission error:', err)
+      setTicketSubmitted(false)
     } finally {
-      onClose() // Hide loading modal
+      onClose() // close loading modal
     }
   }
 
@@ -197,6 +211,7 @@ export default function SupportTicketForm() {
     setContactNumber('')
     setContactEmail('')
     setTicketSubmitted(false)
+    setPhotosUploading(false)
   }
 
   const handleClosePortal = () => {
@@ -228,10 +243,18 @@ export default function SupportTicketForm() {
           <Text fontSize="2xl" fontWeight="bold" color="white">
             ✅ Ticket Submitted!
           </Text>
-          <Button colorScheme="blue" onClick={handleResetForm}>
+
+          {photosUploading && (
+            <HStack spacing={2} align="center">
+              <Spinner size="sm" color="white" />
+              <Text color="white">Uploading photos...</Text>
+            </HStack>
+          )}
+
+          <Button colorScheme="blue" onClick={handleResetForm} isDisabled={photosUploading}>
             Submit Another
           </Button>
-          <Button variant="outline" onClick={handleClosePortal}>
+          <Button variant="outline" onClick={handleClosePortal} isDisabled={photosUploading}>
             Close Ticket Portal
           </Button>
         </VStack>
@@ -253,22 +276,36 @@ export default function SupportTicketForm() {
                   onChange={(e) => setStoreName(e.target.value)}
                   placeholder="Store name"
                   isRequired
+                  isDisabled={photosUploading}
                 />
               </FormControl>
 
               <Checkbox
                 isChecked={multipleScreens}
                 onChange={(e) => setMultipleScreens(e.target.checked)}
+                isDisabled={photosUploading}
               >
                 Multiple Screens
               </Checkbox>
 
               {screens.map((screen, idx) => (
-                <Box key={idx} p={4} borderWidth="1px" borderRadius="md" borderColor="#333">
+                <Box
+                  key={idx}
+                  p={4}
+                  borderWidth="1px"
+                  borderRadius="md"
+                  borderColor="#333"
+                  opacity={photosUploading ? 0.5 : 1}
+                >
                   <HStack justify="space-between" mb={2}>
                     <Text fontWeight="bold">Screen {idx + 1}</Text>
                     {screens.length > 1 && (
-                      <Button size="sm" colorScheme="red" onClick={() => removeScreen(idx)}>
+                      <Button
+                        size="sm"
+                        colorScheme="red"
+                        onClick={() => removeScreen(idx)}
+                        isDisabled={photosUploading}
+                      >
                         Remove
                       </Button>
                     )}
@@ -282,6 +319,7 @@ export default function SupportTicketForm() {
                       onChange={(e) => handleScreenChange(idx, 'name', e.target.value)}
                       placeholder="Screen Location"
                       isRequired
+                      isDisabled={photosUploading}
                     />
                   </FormControl>
 
@@ -293,6 +331,7 @@ export default function SupportTicketForm() {
                       onChange={(e) => handleScreenChange(idx, 'description', e.target.value)}
                       placeholder="Select issue"
                       isRequired
+                      isDisabled={photosUploading}
                     >
                       {DESCRIPTION_OPTIONS.map((opt) => (
                         <option key={opt} value={opt}>
@@ -307,8 +346,11 @@ export default function SupportTicketForm() {
                         mt={2}
                         placeholder="Please explain the issue"
                         value={screen.otherDescription}
-                        onChange={(e) => handleScreenChange(idx, 'otherDescription', e.target.value)}
+                        onChange={(e) =>
+                          handleScreenChange(idx, 'otherDescription', e.target.value)
+                        }
                         isRequired
+                        isDisabled={photosUploading}
                       />
                     )}
                   </FormControl>
@@ -323,13 +365,14 @@ export default function SupportTicketForm() {
                       bg="#2d2d2d"
                       borderColor="#444"
                       color="white"
+                      isDisabled={photosUploading}
                     />
                   </FormControl>
                 </Box>
               ))}
 
               {multipleScreens && (
-                <Button onClick={addScreen} colorScheme="blue" size="sm">
+                <Button onClick={addScreen} colorScheme="blue" size="sm" isDisabled={photosUploading}>
                   Add Screen
                 </Button>
               )}
@@ -342,6 +385,7 @@ export default function SupportTicketForm() {
                   onChange={(e) => setContactName(e.target.value)}
                   placeholder="Your name"
                   isRequired
+                  isDisabled={photosUploading}
                 />
               </FormControl>
 
@@ -353,6 +397,7 @@ export default function SupportTicketForm() {
                   onChange={(e) => setContactNumber(e.target.value)}
                   placeholder="Contact number"
                   isRequired
+                  isDisabled={photosUploading}
                 />
               </FormControl>
 
@@ -365,10 +410,11 @@ export default function SupportTicketForm() {
                   onChange={(e) => setContactEmail(e.target.value)}
                   placeholder="Email address"
                   isRequired
+                  isDisabled={photosUploading}
                 />
               </FormControl>
 
-              <Button type="submit" colorScheme="green" size="lg" mt={4}>
+              <Button type="submit" colorScheme="green" size="lg" mt={4} isDisabled={photosUploading}>
                 Submit
               </Button>
             </VStack>
