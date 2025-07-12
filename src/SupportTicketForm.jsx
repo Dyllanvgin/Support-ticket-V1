@@ -33,7 +33,7 @@ const DESCRIPTION_OPTIONS = [
 ]
 
 const TICKET_BOARD_ID = '9575288798' // keep as is
-const API_BASE_URL = 'https://support-ticket-backend-v1.onrender.com' // your dev machine's IP
+const API_BASE_URL = 'https://support-ticket-backend-v1.onrender.com' // your backend URL
 
 export default function SupportTicketForm() {
   const [searchParams] = useSearchParams()
@@ -81,9 +81,6 @@ export default function SupportTicketForm() {
     setScreens(screens.filter((_, i) => i !== index))
   }
 
-  // Your existing async functions: createMainItem, createSubitem, uploadPhoto here
-  // (Keep unchanged)
-
   async function createMainItem() {
     if (!storeName || storeName.trim() === '') {
       throw new Error('Store name cannot be empty')
@@ -98,14 +95,9 @@ export default function SupportTicketForm() {
       text_mkssz2ke: contactName
     }
 
-    console.log('Creating main item with storeName:', storeName)
-    console.log('Column values:', columnValuesObj)
-
     const response = await fetch(`${API_BASE_URL}/create-item`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         boardId: TICKET_BOARD_ID,
         itemName: storeName,
@@ -114,27 +106,15 @@ export default function SupportTicketForm() {
     })
 
     const result = await response.json()
-    console.log('🔍 Full result:', result)
 
-    if (result.error) {
-      console.error('❌ Error creating main item:', result.error)
-      throw new Error('Create main item failed: ' + result.error)
-    }
-
-    if (result.errors) {
-      console.error('❌ GraphQL errors creating main item:', result.errors)
-      throw new Error(
-        'Create main item failed: ' +
-          result.errors.map((e) => e.message).join('; ')
-      )
-    }
+    if (result.error) throw new Error('Create main item failed: ' + result.error)
+    if (result.errors)
+      throw new Error('Create main item failed: ' +
+        result.errors.map((e) => e.message).join('; '))
 
     const itemId = result.data?.create_item?.id
-    if (!itemId) {
-      throw new Error('No item ID returned from create_item mutation')
-    }
+    if (!itemId) throw new Error('No item ID returned from create_item mutation')
 
-    console.log(`✅ Main Item created: ${itemId}`)
     return itemId
   }
 
@@ -147,13 +127,9 @@ export default function SupportTicketForm() {
       subitemValuesObj.text_mksswvza = screen.otherDescription || ''
     }
 
-    console.log(`Creating subitem for parent ${parentId}`, subitemValuesObj)
-
     const response = await fetch(`${API_BASE_URL}/create-subitem`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         parentItemId: parentId,
         itemName: screen.name || 'Unnamed Screen',
@@ -162,27 +138,15 @@ export default function SupportTicketForm() {
     })
 
     const result = await response.json()
-    console.log('📦 Subitem result:', result)
 
-    if (result.error) {
-      console.error('❌ Error creating subitem:', result.error)
-      throw new Error('Subitem creation failed: ' + result.error)
-    }
-
-    if (result.errors) {
-      console.error('❌ GraphQL errors creating subitem:', result.errors)
-      throw new Error(
-        'Subitem creation failed: ' +
-          result.errors.map((e) => e.message).join('; ')
-      )
-    }
+    if (result.error) throw new Error('Subitem creation failed: ' + result.error)
+    if (result.errors)
+      throw new Error('Subitem creation failed: ' +
+        result.errors.map((e) => e.message).join('; '))
 
     const subitemId = result.data?.create_subitem?.id
-    if (!subitemId) {
-      throw new Error('No item ID returned from create_subitem mutation')
-    }
+    if (!subitemId) throw new Error('No item ID returned from create_subitem mutation')
 
-    console.log(`📦 Subitem created under ${parentId}: ${subitemId}`)
     return subitemId
   }
 
@@ -195,43 +159,33 @@ export default function SupportTicketForm() {
 
     const response = await fetch(
       `${API_BASE_URL}/upload?item_id=${subitemId}&column_id=${columnId}`,
-      {
-        method: 'POST',
-        body: formData
-      }
+      { method: 'POST', body: formData }
     )
 
     const result = await response.json()
-    console.log(`📤 Uploaded file for subitem ${subitemId}:`, result)
-    if (result.errors) {
-      console.error('❌ File upload error:', result.errors)
-      throw new Error(
-        'File upload failed: ' + result.errors.map((e) => e.message).join('; ')
-      )
-    }
+    if (result.errors)
+      throw new Error('File upload failed: ' + result.errors.map((e) => e.message).join('; '))
+
     return result
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    onOpen() // show modal when submission starts
+    onOpen() // Show loading modal
     try {
       const mainItemId = await createMainItem()
-
       for (const screen of screens) {
         const subitemId = await createSubitem(mainItemId, screen)
         if (screen.photo) {
           await uploadPhoto(subitemId, screen.photo)
         }
       }
-
       setTicketSubmitted(true)
-      console.log('🎉 Ticket submitted successfully.')
     } catch (err) {
-      console.error('Ticket submission error:', err)
       alert('Ticket submission failed. See console for details.')
+      console.error('Ticket submission error:', err)
     } finally {
-      onClose() // hide modal when submission ends
+      onClose() // Hide loading modal
     }
   }
 
@@ -353,9 +307,7 @@ export default function SupportTicketForm() {
                         mt={2}
                         placeholder="Please explain the issue"
                         value={screen.otherDescription}
-                        onChange={(e) =>
-                          handleScreenChange(idx, 'otherDescription', e.target.value)
-                        }
+                        onChange={(e) => handleScreenChange(idx, 'otherDescription', e.target.value)}
                         isRequired
                       />
                     )}
