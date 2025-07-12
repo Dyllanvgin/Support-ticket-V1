@@ -25,8 +25,8 @@ const DESCRIPTION_OPTIONS = [
   'Other'
 ]
 
-const TICKET_BOARD_ID = '9575288798' // keep as is
-const API_BASE_URL = 'https://support-ticket-backend-v1.onrender.com' // your dev machine's IP
+const TICKET_BOARD_ID = '9575288798'
+const API_BASE_URL = 'https://support-ticket-backend-v1.onrender.com'
 
 export default function SupportTicketForm() {
   const [searchParams] = useSearchParams()
@@ -74,9 +74,7 @@ export default function SupportTicketForm() {
   }
 
   async function createMainItem() {
-    if (!storeName || storeName.trim() === '') {
-      throw new Error('Store name cannot be empty')
-    }
+    if (!storeName.trim()) throw new Error('Store name cannot be empty')
 
     const columnValuesObj = {
       email_mkssfg0w: {
@@ -87,14 +85,9 @@ export default function SupportTicketForm() {
       text_mkssz2ke: contactName
     }
 
-    console.log('Creating main item with storeName:', storeName)
-    console.log('Column values:', columnValuesObj)
-
     const response = await fetch(`${API_BASE_URL}/create-item`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         boardId: TICKET_BOARD_ID,
         itemName: storeName,
@@ -103,27 +96,9 @@ export default function SupportTicketForm() {
     })
 
     const result = await response.json()
-    console.log('🔍 Full result:', result)
-
-    if (result.error) {
-      console.error('❌ Error creating main item:', result.error)
-      throw new Error('Create main item failed: ' + result.error)
-    }
-
-    if (result.errors) {
-      console.error('❌ GraphQL errors creating main item:', result.errors)
-      throw new Error(
-        'Create main item failed: ' +
-          result.errors.map((e) => e.message).join('; ')
-      )
-    }
-
+    if (result.error) throw new Error(result.error)
     const itemId = result.data?.create_item?.id
-    if (!itemId) {
-      throw new Error('No item ID returned from create_item mutation')
-    }
-
-    console.log(`✅ Main Item created: ${itemId}`)
+    if (!itemId) throw new Error('No item ID returned from create_item mutation')
     return itemId
   }
 
@@ -136,42 +111,25 @@ export default function SupportTicketForm() {
       subitemValuesObj.text_mksswvza = screen.otherDescription || ''
     }
 
-    console.log(`Creating subitem for parent ${parentId}`, subitemValuesObj)
+    const columnValues = JSON.stringify(subitemValuesObj).replace(/"/g, '\\"')
+    const mutation = `
+      mutation {
+        create_subitem (parent_item_id: ${parentId}, item_name: "${screen.name || 'Unnamed Screen'}", column_values: "${columnValues}") {
+          id
+        }
+      }
+    `
 
     const response = await fetch(`${API_BASE_URL}/create-subitem`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        parentItemId: parentId,
-        itemName: screen.name || 'Unnamed Screen',
-        columnValues: subitemValuesObj
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: mutation })
     })
 
     const result = await response.json()
-    console.log('📦 Subitem result:', result)
-
-    if (result.error) {
-      console.error('❌ Error creating subitem:', result.error)
-      throw new Error('Subitem creation failed: ' + result.error)
-    }
-
-    if (result.errors) {
-      console.error('❌ GraphQL errors creating subitem:', result.errors)
-      throw new Error(
-        'Subitem creation failed: ' +
-          result.errors.map((e) => e.message).join('; ')
-      )
-    }
-
+    if (result.error) throw new Error(result.error)
     const subitemId = result.data?.create_subitem?.id
-    if (!subitemId) {
-      throw new Error('No item ID returned from create_subitem mutation')
-    }
-
-    console.log(`📦 Subitem created under ${parentId}: ${subitemId}`)
+    if (!subitemId) throw new Error('No item ID returned from create_subitem mutation')
     return subitemId
   }
 
@@ -179,25 +137,15 @@ export default function SupportTicketForm() {
     if (!file) return
     const formData = new FormData()
     formData.append('file', file)
-
     const columnId = 'file_mksszjy2'
 
     const response = await fetch(
       `${API_BASE_URL}/upload?item_id=${subitemId}&column_id=${columnId}`,
-      {
-        method: 'POST',
-        body: formData
-      }
+      { method: 'POST', body: formData }
     )
 
     const result = await response.json()
-    console.log(`📤 Uploaded file for subitem ${subitemId}:`, result)
-    if (result.errors) {
-      console.error('❌ File upload error:', result.errors)
-      throw new Error(
-        'File upload failed: ' + result.errors.map((e) => e.message).join('; ')
-      )
-    }
+    if (result.errors) throw new Error(result.errors.map((e) => e.message).join('; '))
     return result
   }
 
@@ -205,16 +153,11 @@ export default function SupportTicketForm() {
     e.preventDefault()
     try {
       const mainItemId = await createMainItem()
-
       for (const screen of screens) {
         const subitemId = await createSubitem(mainItemId, screen)
-        if (screen.photo) {
-          await uploadPhoto(subitemId, screen.photo)
-        }
+        if (screen.photo) await uploadPhoto(subitemId, screen.photo)
       }
-
       setTicketSubmitted(true)
-      console.log('🎉 Ticket submitted successfully.')
     } catch (err) {
       console.error('Ticket submission error:', err)
       alert('Ticket submission failed. See console for details.')
@@ -232,11 +175,8 @@ export default function SupportTicketForm() {
   }
 
   const handleClosePortal = () => {
-    if (window.history.length > 1) {
-      navigate(-1)
-    } else {
-      window.close()
-    }
+    if (window.history.length > 1) navigate(-1)
+    else window.close()
   }
 
   const inputProps = {
@@ -257,15 +197,9 @@ export default function SupportTicketForm() {
     return (
       <Center py={20} bg="#fb6520" minH="100vh">
         <VStack spacing={6}>
-          <Text fontSize="2xl" fontWeight="bold" color="white">
-            ✅ Ticket Submitted!
-          </Text>
-          <Button colorScheme="blue" onClick={handleResetForm}>
-            Submit Another
-          </Button>
-          <Button variant="outline" onClick={handleClosePortal}>
-            Close Ticket Portal
-          </Button>
+          <Text fontSize="2xl" fontWeight="bold" color="white">✅ Ticket Submitted!</Text>
+          <Button colorScheme="blue" onClick={handleResetForm}>Submit Another</Button>
+          <Button variant="outline" onClick={handleClosePortal}>Close Ticket Portal</Button>
         </VStack>
       </Center>
     )
@@ -278,19 +212,10 @@ export default function SupportTicketForm() {
           <VStack spacing={4} align="stretch" color="white">
             <FormControl>
               <FormLabel>Store Name:</FormLabel>
-              <Input
-                {...inputProps}
-                value={storeName}
-                onChange={(e) => setStoreName(e.target.value)}
-                placeholder="Store name"
-                isRequired
-              />
+              <Input {...inputProps} value={storeName} onChange={(e) => setStoreName(e.target.value)} placeholder="Store name" isRequired />
             </FormControl>
 
-            <Checkbox
-              isChecked={multipleScreens}
-              onChange={(e) => setMultipleScreens(e.target.checked)}
-            >
+            <Checkbox isChecked={multipleScreens} onChange={(e) => setMultipleScreens(e.target.checked)}>
               Multiple Screens
             </Checkbox>
 
@@ -299,111 +224,52 @@ export default function SupportTicketForm() {
                 <HStack justify="space-between" mb={2}>
                   <Text fontWeight="bold">Screen {idx + 1}</Text>
                   {screens.length > 1 && (
-                    <Button size="sm" colorScheme="red" onClick={() => removeScreen(idx)}>
-                      Remove
-                    </Button>
+                    <Button size="sm" colorScheme="red" onClick={() => removeScreen(idx)}>Remove</Button>
                   )}
                 </HStack>
 
                 <FormControl mb={3}>
                   <FormLabel>Screen Location:</FormLabel>
-                  <Input
-                    {...inputProps}
-                    value={screen.name}
-                    onChange={(e) => handleScreenChange(idx, 'name', e.target.value)}
-                    placeholder="Screen Location"
-                    isRequired
-                  />
+                  <Input {...inputProps} value={screen.name} onChange={(e) => handleScreenChange(idx, 'name', e.target.value)} placeholder="Screen Location" isRequired />
                 </FormControl>
 
                 <FormControl mb={3}>
                   <FormLabel>Description:</FormLabel>
-                  <Select
-                    {...descriptionInputProps}
-                    value={screen.description}
-                    onChange={(e) => handleScreenChange(idx, 'description', e.target.value)}
-                    placeholder="Select issue"
-                    isRequired
-                  >
+                  <Select {...descriptionInputProps} value={screen.description} onChange={(e) => handleScreenChange(idx, 'description', e.target.value)} placeholder="Select issue" isRequired>
                     {DESCRIPTION_OPTIONS.map((opt) => (
-                      <option key={opt} value={opt}>
-                        {opt}
-                      </option>
+                      <option key={opt} value={opt}>{opt}</option>
                     ))}
                   </Select>
 
                   {screen.description === 'Other' && (
-                    <Textarea
-                      {...descriptionInputProps}
-                      mt={2}
-                      placeholder="Please explain the issue"
-                      value={screen.otherDescription}
-                      onChange={(e) =>
-                        handleScreenChange(idx, 'otherDescription', e.target.value)
-                      }
-                      isRequired
-                    />
+                    <Textarea {...descriptionInputProps} mt={2} placeholder="Please explain the issue" value={screen.otherDescription} onChange={(e) => handleScreenChange(idx, 'otherDescription', e.target.value)} isRequired />
                   )}
                 </FormControl>
 
                 <FormControl mb={3}>
                   <FormLabel>Upload Photo:</FormLabel>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={(e) => handlePhotoChange(idx, e.target.files[0])}
-                    bg="#2d2d2d"
-                    borderColor="#444"
-                    color="white"
-                  />
+                  <Input type="file" accept="image/*" capture="environment" onChange={(e) => handlePhotoChange(idx, e.target.files[0])} bg="#2d2d2d" borderColor="#444" color="white" />
                 </FormControl>
               </Box>
             ))}
 
             {multipleScreens && (
-              <Button onClick={addScreen} colorScheme="blue" size="sm">
-                Add Screen
-              </Button>
+              <Button onClick={addScreen} colorScheme="blue" size="sm">Add Screen</Button>
             )}
 
-            <FormControl>
-              <FormLabel>Your Name:</FormLabel>
-              <Input
-                {...inputProps}
-                value={contactName}
-                onChange={(e) => setContactName(e.target.value)}
-                placeholder="Your name"
-                isRequired
-              />
+            <FormControl><FormLabel>Your Name:</FormLabel>
+              <Input {...inputProps} value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder="Your name" isRequired />
             </FormControl>
 
-            <FormControl>
-              <FormLabel>Contact Number:</FormLabel>
-              <Input
-                {...inputProps}
-                value={contactNumber}
-                onChange={(e) => setContactNumber(e.target.value)}
-                placeholder="Contact number"
-                isRequired
-              />
+            <FormControl><FormLabel>Contact Number:</FormLabel>
+              <Input {...inputProps} value={contactNumber} onChange={(e) => setContactNumber(e.target.value)} placeholder="Contact number" isRequired />
             </FormControl>
 
-            <FormControl>
-              <FormLabel>Email Address:</FormLabel>
-              <Input
-                {...inputProps}
-                type="email"
-                value={contactEmail}
-                onChange={(e) => setContactEmail(e.target.value)}
-                placeholder="Email address"
-                isRequired
-              />
+            <FormControl><FormLabel>Email Address:</FormLabel>
+              <Input {...inputProps} type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="Email address" isRequired />
             </FormControl>
 
-            <Button type="submit" colorScheme="green" size="lg" mt={4}>
-              Submit
-            </Button>
+            <Button type="submit" colorScheme="green" size="lg" mt={4}>Submit</Button>
           </VStack>
         </form>
       </Box>
