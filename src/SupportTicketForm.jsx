@@ -1,5 +1,5 @@
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import {
   Box,
   Checkbox,
@@ -24,8 +24,10 @@ import {
   Icon,
   useToast,
   Image,
-  FormErrorMessage
+  FormErrorMessage,
+  Collapse,
 } from '@chakra-ui/react'
+import { keyframes } from '@emotion/react'
 import { FiMonitor, FiUpload, FiPlus, FiTrash2, FiUser, FiPhone, FiMail } from 'react-icons/fi'
 
 const DESCRIPTION_OPTIONS = [
@@ -40,6 +42,13 @@ const DESCRIPTION_OPTIONS = [
 
 const TICKET_BOARD_ID = '9575288798'
 const API_BASE_URL = 'https://support-ticket-backend-v1.onrender.com'
+
+// Pulse animation for submit button
+const pulse = keyframes`
+  0% { box-shadow: 0 0 0 0 rgba(72,187,120, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(72,187,120, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(72,187,120, 0); }
+`
 
 export default function SupportTicketForm() {
   const [searchParams] = useSearchParams()
@@ -64,18 +73,15 @@ export default function SupportTicketForm() {
     if (client) setStoreName(`${client} Test`)
   }, [client])
 
-  // Validation helpers
-  const validateEmail = (email) => {
-    // Simple email regex
+  const validateEmail = useCallback((email) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-  }
-  const validatePhone = (phone) => {
-    // Basic: digits, spaces, plus, dashes allowed (adjust as needed)
-    return /^[\d +()-]{7,}$/.test(phone)
-  }
+  }, [])
 
-  // Validate all inputs on every change or submit
-  const validateForm = () => {
+  const validatePhone = useCallback((phone) => {
+    return /^[\d +()-]{7,}$/.test(phone)
+  }, [])
+
+  const validateForm = useCallback(() => {
     const newErrors = {}
 
     if (!storeName.trim()) newErrors.storeName = 'Store name is required'
@@ -99,14 +105,30 @@ export default function SupportTicketForm() {
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
-  }
+  }, [storeName, contactName, contactNumber, contactEmail, screens, validateEmail, validatePhone])
+
+  useEffect(() => {
+    if (
+      storeName ||
+      contactName ||
+      contactNumber ||
+      contactEmail ||
+      screens.some(s => s.name || s.description || s.otherDescription)
+    ) {
+      validateForm()
+    }
+  }, [storeName, contactName, contactNumber, contactEmail, screens, validateForm])
 
   const handleScreenChange = (index, field, value) => {
     const newScreens = [...screens]
     newScreens[index][field] = value
     if (field === 'description' && value !== 'Other') {
       newScreens[index].otherDescription = ''
-      delete errors[`screenOtherDescription${index}`]
+      setErrors(prev => {
+        const copy = { ...prev }
+        delete copy[`screenOtherDescription${index}`]
+        return copy
+      })
     }
     setScreens(newScreens)
     setErrors((prev) => {
@@ -121,7 +143,6 @@ export default function SupportTicketForm() {
     const newScreens = [...screens]
     newScreens[index].photo = file
 
-    // Generate preview
     if (file) {
       const reader = new FileReader()
       reader.onload = (e) => {
@@ -241,7 +262,10 @@ export default function SupportTicketForm() {
     color: 'white',
     borderColor: '#444',
     _placeholder: { color: '#888' },
-    borderRadius: 'md'
+    borderRadius: 'md',
+    fontSize: 'md',
+    px: 3,
+    py: 2,
   }
 
   const descriptionInputProps = {
@@ -249,14 +273,17 @@ export default function SupportTicketForm() {
     color: 'black',
     borderColor: '#999',
     _placeholder: { color: '#555' },
-    borderRadius: 'md'
+    borderRadius: 'md',
+    fontSize: 'md',
+    px: 3,
+    py: 2,
   }
 
   if (ticketSubmitted) {
     return (
-      <Center py={20} bg="#fb6520" minH="100vh">
-        <VStack spacing={6}>
-          <Text fontSize="3xl" fontWeight="bold" color="white">
+      <Center py={20} bg="#fb6520" minH="100vh" px={4}>
+        <VStack spacing={6} maxW="600px" w="100%">
+          <Text fontSize="3xl" fontWeight="bold" color="white" userSelect="none">
             ✅ Ticket Submitted
           </Text>
           {photosUploading && (
@@ -265,10 +292,28 @@ export default function SupportTicketForm() {
               <Text color="white">Uploading photos…</Text>
             </HStack>
           )}
-          <Button colorScheme="blue" onClick={() => window.location.reload()} isDisabled={photosUploading}>
+          <Button
+            colorScheme="blue"
+            onClick={() => window.location.reload()}
+            isDisabled={photosUploading}
+            size="lg"
+            w="full"
+            mt={4}
+            _hover={{ boxShadow: '0 0 12px 3px #2b6cb0' }}
+            transition="box-shadow 0.3s ease"
+          >
             Submit Another
           </Button>
-          <Button variant="outline" onClick={() => navigate('/')} isDisabled={photosUploading}>
+          <Button
+            variant="outline"
+            onClick={() => navigate('/')}
+            isDisabled={photosUploading}
+            size="lg"
+            w="full"
+            mt={2}
+            _hover={{ bg: 'orange.400', color: 'black' }}
+            transition="background-color 0.3s ease"
+          >
             Close Portal
           </Button>
         </VStack>
@@ -278,8 +323,8 @@ export default function SupportTicketForm() {
 
   return (
     <>
-      <Center py={10} bg="#fb6520" minH="100vh">
-        <Box maxW="600px" w="100%" p={8} bg="black" boxShadow="lg" borderRadius="lg">
+      <Center py={10} bg="#fb6520" minH="100vh" px={4}>
+        <Box maxW="600px" w="100%" p={6} bg="black" boxShadow="lg" borderRadius="lg">
           <form onSubmit={handleSubmit} noValidate>
             <VStack spacing={5} align="stretch" color="white">
               <FormControl isInvalid={!!errors.storeName} isRequired>
@@ -287,43 +332,63 @@ export default function SupportTicketForm() {
                   <Icon as={FiMonitor} mr={2} />
                   Store Name
                 </FormLabel>
-                <Input {...inputProps} value={storeName} onChange={(e) => setStoreName(e.target.value)} placeholder="Enter store name" />
+                <Input
+                  {...inputProps}
+                  value={storeName}
+                  onChange={(e) => setStoreName(e.target.value)}
+                  placeholder="Enter store name"
+                  autoComplete="organization"
+                  spellCheck={false}
+                />
                 <FormErrorMessage>{errors.storeName}</FormErrorMessage>
               </FormControl>
 
-              <Checkbox isChecked={multipleScreens} onChange={(e) => setMultipleScreens(e.target.checked)} colorScheme="orange">
+              <Checkbox isChecked={multipleScreens} onChange={(e) => setMultipleScreens(e.target.checked)} colorScheme="orange" size="lg">
                 Multiple Screens
               </Checkbox>
 
               {screens.map((screen, idx) => (
                 <Box key={idx} p={4} borderWidth="1px" borderRadius="md" borderColor="#333" bg="#111" mb={4}>
                   <HStack justify="space-between" mb={2}>
-                    <Text fontWeight="semibold">Screen {idx + 1}</Text>
+                    <Text fontWeight="semibold" fontSize="lg">
+                      Screen {idx + 1}
+                    </Text>
                     {screens.length > 1 && (
-                      <Button size="xs" colorScheme="red" onClick={() => removeScreen(idx)}>
+                      <Button
+                        size="xs"
+                        colorScheme="red"
+                        onClick={() => removeScreen(idx)}
+                        aria-label={`Remove Screen ${idx + 1}`}
+                        _hover={{ transform: 'scale(1.15)', boxShadow: '0 0 8px red' }}
+                        transition="transform 0.2s ease, box-shadow 0.2s ease"
+                      >
                         <Icon as={FiTrash2} />
                       </Button>
                     )}
                   </HStack>
 
                   <FormControl isInvalid={!!errors[`screenName${idx}`]} isRequired mb={3}>
-                    <FormLabel>Screen Location</FormLabel>
+                    <FormLabel fontSize="md">Screen Location</FormLabel>
                     <Input
                       {...inputProps}
                       value={screen.name}
                       onChange={(e) => handleScreenChange(idx, 'name', e.target.value)}
                       placeholder="e.g. Entrance Left"
+                      autoComplete="off"
+                      spellCheck={false}
+                      size="md"
                     />
                     <FormErrorMessage>{errors[`screenName${idx}`]}</FormErrorMessage>
                   </FormControl>
 
                   <FormControl isInvalid={!!errors[`screenDescription${idx}`]} isRequired mb={3}>
-                    <FormLabel>Issue Description</FormLabel>
+                    <FormLabel fontSize="md">Issue Description</FormLabel>
                     <Select
                       {...descriptionInputProps}
                       value={screen.description}
                       onChange={(e) => handleScreenChange(idx, 'description', e.target.value)}
                       placeholder="Select issue"
+                      size="md"
                     >
                       {DESCRIPTION_OPTIONS.map((opt) => (
                         <option key={opt} value={opt}>
@@ -332,21 +397,24 @@ export default function SupportTicketForm() {
                       ))}
                     </Select>
                     <FormErrorMessage>{errors[`screenDescription${idx}`]}</FormErrorMessage>
-                    {screen.description === 'Other' && (
+
+                    <Collapse in={screen.description === 'Other'} animateOpacity>
                       <FormControl isInvalid={!!errors[`screenOtherDescription${idx}`]} isRequired mt={2}>
                         <Textarea
                           {...descriptionInputProps}
                           placeholder="Describe issue…"
                           value={screen.otherDescription}
                           onChange={(e) => handleScreenChange(idx, 'otherDescription', e.target.value)}
+                          size="md"
+                          rows={3}
                         />
                         <FormErrorMessage>{errors[`screenOtherDescription${idx}`]}</FormErrorMessage>
                       </FormControl>
-                    )}
+                    </Collapse>
                   </FormControl>
 
                   <FormControl mb={3}>
-                    <FormLabel>
+                    <FormLabel fontSize="md">
                       <Icon as={FiUpload} mr={2} />
                       Photo
                     </FormLabel>
@@ -356,6 +424,7 @@ export default function SupportTicketForm() {
                       capture="environment"
                       onChange={(e) => handlePhotoChange(idx, e.target.files[0])}
                       {...inputProps}
+                      size="md"
                     />
                     {screen.preview && (
                       <Image
@@ -365,6 +434,9 @@ export default function SupportTicketForm() {
                         mt={2}
                         borderRadius="md"
                         objectFit="contain"
+                        loading="lazy"
+                        draggable={false}
+                        userSelect="none"
                       />
                     )}
                   </FormControl>
@@ -372,7 +444,16 @@ export default function SupportTicketForm() {
               ))}
 
               {multipleScreens && (
-                <Button leftIcon={<FiPlus />} onClick={addScreen} colorScheme="blue" size="sm">
+                <Button
+                  leftIcon={<FiPlus />}
+                  onClick={addScreen}
+                  colorScheme="blue"
+                  size="md"
+                  w="full"
+                  mt={2}
+                  _hover={{ transform: 'scale(1.05)', boxShadow: '0 0 8px #3182ce' }}
+                  transition="transform 0.2s ease, box-shadow 0.2s ease"
+                >
                   Add Screen
                 </Button>
               )}
@@ -382,7 +463,15 @@ export default function SupportTicketForm() {
                   <Icon as={FiUser} mr={2} />
                   Your Name
                 </FormLabel>
-                <Input {...inputProps} value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder="Full name" />
+                <Input
+                  {...inputProps}
+                  value={contactName}
+                  onChange={(e) => setContactName(e.target.value)}
+                  placeholder="Full name"
+                  autoComplete="name"
+                  spellCheck={false}
+                  size="md"
+                />
                 <FormErrorMessage>{errors.contactName}</FormErrorMessage>
               </FormControl>
 
@@ -391,7 +480,15 @@ export default function SupportTicketForm() {
                   <Icon as={FiPhone} mr={2} />
                   Contact Number
                 </FormLabel>
-                <Input {...inputProps} value={contactNumber} onChange={(e) => setContactNumber(e.target.value)} placeholder="Phone number" />
+                <Input
+                  {...inputProps}
+                  value={contactNumber}
+                  onChange={(e) => setContactNumber(e.target.value)}
+                  placeholder="Phone number"
+                  autoComplete="tel"
+                  spellCheck={false}
+                  size="md"
+                />
                 <FormErrorMessage>{errors.contactNumber}</FormErrorMessage>
               </FormControl>
 
@@ -400,11 +497,29 @@ export default function SupportTicketForm() {
                   <Icon as={FiMail} mr={2} />
                   Email Address
                 </FormLabel>
-                <Input {...inputProps} type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="Email address" />
+                <Input
+                  {...inputProps}
+                  type="email"
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  placeholder="Email address"
+                  autoComplete="email"
+                  spellCheck={false}
+                  size="md"
+                />
                 <FormErrorMessage>{errors.contactEmail}</FormErrorMessage>
               </FormControl>
 
-              <Button type="submit" colorScheme="green" size="lg" mt={2} isFullWidth>
+              <Button
+                type="submit"
+                colorScheme="green"
+                size="lg"
+                mt={4}
+                isFullWidth
+                animation={`${pulse} 2s infinite`}
+                _hover={{ boxShadow: '0 0 12px 4px #48bb78' }}
+                transition="box-shadow 0.3s ease"
+              >
                 Submit Ticket
               </Button>
             </VStack>
