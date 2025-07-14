@@ -93,7 +93,7 @@ export default function SupportTicketForm() {
   const validateForm = useCallback(() => {
     const newErrors = {}
 
-    if (!storeCode.trim()) newErrors.storeCode = 'Store code is required'
+   
     if (!storeName.trim()) newErrors.storeName = 'Store name is required'
     if (!contactName.trim()) newErrors.contactName = 'Your name is required'
     if (!contactNumber.trim()) newErrors.contactNumber = 'Contact number is required'
@@ -348,7 +348,7 @@ export default function SupportTicketForm() {
             <VStack spacing={5} align="stretch" color="white">
               {/* Store Code */}
               <FormControl isInvalid={!!errors.storeCode}>
-                <FormLabel>Store Code - if Known</FormLabel>
+                <FormLabel>Store Code - if known</FormLabel>
                 <Input
                   {...inputProps}
                   value={storeCode}
