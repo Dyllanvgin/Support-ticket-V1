@@ -178,7 +178,7 @@ export default function SupportTicketForm() {
 
   async function createMainItem() {
     if (!storeName.trim()) throw new Error('Store name cannot be empty')
-    if (!storeCode.trim()) throw new Error('Store code cannot be empty')
+    //if (!storeCode.trim()) throw new Error('Store code cannot be empty')
 
     const columnValuesObj = {
       email_mkssfg0w: { email: contactEmail, text: contactEmail },
