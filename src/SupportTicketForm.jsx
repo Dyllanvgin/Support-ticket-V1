@@ -60,9 +60,9 @@ export default function SupportTicketForm() {
   const navigate = useNavigate()
   const client = searchParams.get('client') || ''
 
-  // Initial screens array to reset to
   const initialScreens = [{ name: '', description: '', otherDescription: '', photo: null, preview: null }]
 
+  const [storeCode, setStoreCode] = useState('')
   const [storeName, setStoreName] = useState('')
   const [multipleScreens, setMultipleScreens] = useState(false)
   const [screens, setScreens] = useState(initialScreens)
@@ -74,19 +74,18 @@ export default function SupportTicketForm() {
   const { isOpen, onOpen, onClose } = useDisclosure()
   const toast = useToast()
 
-  // Validation state
   const [errors, setErrors] = useState({})
 
   useEffect(() => {
-    if (client) setStoreName(`${client} Test`)
+    if (client) {
+      setStoreName(`${client} Test`)
+      setStoreCode('')
+    }
   }, [client])
 
-  const validateEmail = useCallback((email) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-  }, [])
+  const validateEmail = useCallback((email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email), [])
 
   const validatePhone = useCallback((phone) => {
-    // Phone must be 7+ digits after sanitisation
     const digitsOnly = phone.replace(/\D/g, '')
     return digitsOnly.length >= 7
   }, [])
@@ -94,6 +93,7 @@ export default function SupportTicketForm() {
   const validateForm = useCallback(() => {
     const newErrors = {}
 
+    if (!storeCode.trim()) newErrors.storeCode = 'Store code is required'
     if (!storeName.trim()) newErrors.storeName = 'Store name is required'
     if (!contactName.trim()) newErrors.contactName = 'Your name is required'
     if (!contactNumber.trim()) newErrors.contactNumber = 'Contact number is required'
@@ -102,23 +102,18 @@ export default function SupportTicketForm() {
     else if (!validateEmail(contactEmail)) newErrors.contactEmail = 'Invalid email format'
 
     screens.forEach((screen, idx) => {
-      if (!screen.name.trim()) {
-        newErrors[`screenName${idx}`] = 'Screen location is required'
-      }
-      if (!screen.description) {
-        newErrors[`screenDescription${idx}`] = 'Description is required'
-      }
-      if (screen.description === 'Other' && !screen.otherDescription.trim()) {
-        newErrors[`screenOtherDescription${idx}`] = 'Please describe the issue'
-      }
+      if (!screen.name.trim()) newErrors[`screenName${idx}`] = 'Screen location is required'
+      if (!screen.description) newErrors[`screenDescription${idx}`] = 'Description is required'
+      if (screen.description === 'Other' && !screen.otherDescription.trim()) newErrors[`screenOtherDescription${idx}`] = 'Please describe the issue'
     })
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
-  }, [storeName, contactName, contactNumber, contactEmail, screens, validateEmail, validatePhone])
+  }, [storeCode, storeName, contactName, contactNumber, contactEmail, screens, validateEmail, validatePhone])
 
   useEffect(() => {
     if (
+      storeCode ||
       storeName ||
       contactName ||
       contactNumber ||
@@ -127,7 +122,7 @@ export default function SupportTicketForm() {
     ) {
       validateForm()
     }
-  }, [storeName, contactName, contactNumber, contactEmail, screens, validateForm])
+  }, [storeCode, storeName, contactName, contactNumber, contactEmail, screens, validateForm])
 
   const handleScreenChange = (index, field, value) => {
     const newScreens = [...screens]
@@ -183,11 +178,13 @@ export default function SupportTicketForm() {
 
   async function createMainItem() {
     if (!storeName.trim()) throw new Error('Store name cannot be empty')
+    if (!storeCode.trim()) throw new Error('Store code cannot be empty')
 
     const columnValuesObj = {
       email_mkssfg0w: { email: contactEmail, text: contactEmail },
       phone_mkssfmma: contactNumber,
-      text_mkssz2ke: contactName
+      text_mkssz2ke: contactName,
+      text_mksv4188: storeCode // <-- Replace with actual store code column ID
     }
 
     const response = await fetch(`${API_BASE_URL}/create-item`, {
@@ -267,9 +264,9 @@ export default function SupportTicketForm() {
     }
   }
 
-  // Reset form to initial state without navigating or reload
   const resetForm = () => {
     setTicketSubmitted(false)
+    setStoreCode('')
     setStoreName(client ? `${client} Test` : '')
     setMultipleScreens(false)
     setScreens(initialScreens)
@@ -316,7 +313,7 @@ export default function SupportTicketForm() {
           )}
           <Button
             colorScheme="blue"
-            onClick={resetForm}     // <-- reset form here, no reload or navigate
+            onClick={resetForm}
             isDisabled={photosUploading}
             size="lg"
             w="full"
@@ -349,6 +346,21 @@ export default function SupportTicketForm() {
         <Box maxW="600px" w="100%" p={6} bg="black" boxShadow="lg" borderRadius="lg">
           <form onSubmit={handleSubmit} noValidate>
             <VStack spacing={5} align="stretch" color="white">
+              {/* Store Code */}
+              <FormControl isInvalid={!!errors.storeCode} isRequired>
+                <FormLabel>Store Code</FormLabel>
+                <Input
+                  {...inputProps}
+                  value={storeCode}
+                  onChange={(e) => setStoreCode(e.target.value)}
+                  placeholder="Enter store code"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <FormErrorMessage>{errors.storeCode}</FormErrorMessage>
+              </FormControl>
+
+              {/* Store Name */}
               <FormControl isInvalid={!!errors.storeName} isRequired>
                 <FormLabel>
                   <Icon as={FiMonitor} mr={2} />
@@ -365,12 +377,25 @@ export default function SupportTicketForm() {
                 <FormErrorMessage>{errors.storeName}</FormErrorMessage>
               </FormControl>
 
-              <Checkbox isChecked={multipleScreens} onChange={(e) => setMultipleScreens(e.target.checked)} colorScheme="orange" size="lg">
+              <Checkbox
+                isChecked={multipleScreens}
+                onChange={(e) => setMultipleScreens(e.target.checked)}
+                colorScheme="orange"
+                size="lg"
+              >
                 Multiple Screens
               </Checkbox>
 
               {screens.map((screen, idx) => (
-                <Box key={idx} p={4} borderWidth="1px" borderRadius="md" borderColor="#333" bg="#111" mb={4}>
+                <Box
+                  key={idx}
+                  p={4}
+                  borderWidth="1px"
+                  borderRadius="md"
+                  borderColor="#333"
+                  bg="#111"
+                  mb={4}
+                >
                   <HStack justify="space-between" mb={2}>
                     <Text fontWeight="semibold" fontSize="lg">
                       Screen {idx + 1}
@@ -474,7 +499,7 @@ export default function SupportTicketForm() {
                   w="full"
                   mt={2}
                   _hover={{ transform: 'scale(1.05)', boxShadow: '0 0 8px #3182ce' }}
-                  transition="transform 0.2s ease, box-shadow 0.2s ease"
+                  transition="transform 0.2s ease"
                 >
                   Add Screen
                 </Button>
@@ -483,16 +508,15 @@ export default function SupportTicketForm() {
               <FormControl isInvalid={!!errors.contactName} isRequired>
                 <FormLabel>
                   <Icon as={FiUser} mr={2} />
-                  Your Name
+                  Contact Name
                 </FormLabel>
                 <Input
                   {...inputProps}
                   value={contactName}
                   onChange={(e) => setContactName(e.target.value)}
-                  placeholder="Full name"
+                  placeholder="Your name"
                   autoComplete="name"
                   spellCheck={false}
-                  size="md"
                 />
                 <FormErrorMessage>{errors.contactName}</FormErrorMessage>
               </FormControl>
@@ -505,15 +529,10 @@ export default function SupportTicketForm() {
                 <Input
                   {...inputProps}
                   value={contactNumber}
-                  onChange={(e) => {
-                    // Sanitize input to digits only on every change
-                    const sanitized = e.target.value.replace(/\D/g, '')
-                    setContactNumber(sanitized)
-                  }}
+                  onChange={(e) => setContactNumber(e.target.value)}
                   placeholder="Phone number"
                   autoComplete="tel"
                   spellCheck={false}
-                  size="md"
                 />
                 <FormErrorMessage>{errors.contactNumber}</FormErrorMessage>
               </FormControl>
@@ -525,13 +544,11 @@ export default function SupportTicketForm() {
                 </FormLabel>
                 <Input
                   {...inputProps}
-                  type="email"
                   value={contactEmail}
                   onChange={(e) => setContactEmail(e.target.value)}
-                  placeholder="Email address"
+                  placeholder="Your email"
                   autoComplete="email"
                   spellCheck={false}
-                  size="md"
                 />
                 <FormErrorMessage>{errors.contactEmail}</FormErrorMessage>
               </FormControl>
@@ -540,11 +557,10 @@ export default function SupportTicketForm() {
                 type="submit"
                 colorScheme="green"
                 size="lg"
+                w="full"
                 mt={4}
-                isFullWidth
                 animation={`${pulse} 2s infinite`}
-                _hover={{ boxShadow: '0 0 12px 4px #48bb78' }}
-                transition="box-shadow 0.3s ease"
+                _hover={{ animation: 'none', boxShadow: '0 0 12px 3px #48bb78' }}
               >
                 Submit Ticket
               </Button>
@@ -552,13 +568,12 @@ export default function SupportTicketForm() {
           </form>
         </Box>
       </Center>
-
-      <Modal isOpen={isOpen} onClose={() => {}} isCentered closeOnOverlayClick={false} closeOnEsc={false}>
+      <Modal isOpen={isOpen} onClose={onClose} isCentered closeOnOverlayClick={false}>
         <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Submitting Ticket</ModalHeader>
-          <ModalBody pb={6}>
-            <Progress size="xs" isIndeterminate />
+        <ModalContent bg="black">
+          <ModalHeader color="white">Submitting Ticket...</ModalHeader>
+          <ModalBody>
+            <Progress size="xs" isIndeterminate colorScheme="green" />
           </ModalBody>
         </ModalContent>
       </Modal>
