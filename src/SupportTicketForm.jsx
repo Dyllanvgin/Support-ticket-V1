@@ -182,7 +182,7 @@ export default function SupportTicketForm() {
 
     const columnValuesObj = {
       email_mkssfg0w: { email: contactEmail, text: contactEmail },
-      phone_mkssfmma: contactNumber,
+      phone_mkssfmma: contactNumber.replace(/\D/g, ''), // sanitized phone number without spaces/special chars
       text_mkssz2ke: contactName,
       text_mksv4188: storeCode // <-- Replace with actual store code column ID
     }
@@ -347,8 +347,8 @@ export default function SupportTicketForm() {
           <form onSubmit={handleSubmit} noValidate>
             <VStack spacing={5} align="stretch" color="white">
               {/* Store Code */}
-              <FormControl isInvalid={!!errors.storeCode} isRequired>
-                <FormLabel>Store Code</FormLabel>
+              <FormControl isInvalid={!!errors.storeCode}>
+                <FormLabel>Store Code - if Known</FormLabel>
                 <Input
                   {...inputProps}
                   value={storeCode}
@@ -529,7 +529,18 @@ export default function SupportTicketForm() {
                 <Input
                   {...inputProps}
                   value={contactNumber}
-                  onChange={(e) => setContactNumber(e.target.value)}
+                  onChange={(e) => {
+                    // sanitize on input: allow only digits and plus sign optionally
+                    const rawValue = e.target.value
+                    const sanitized = rawValue.replace(/[^\d+]/g, '')
+                    setContactNumber(sanitized)
+                    // Also clear errors on change
+                    setErrors((prev) => {
+                      const copy = { ...prev }
+                      delete copy.contactNumber
+                      return copy
+                    })
+                  }}
                   placeholder="Phone number"
                   autoComplete="tel"
                   spellCheck={false}
