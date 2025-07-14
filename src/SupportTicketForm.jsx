@@ -37,6 +37,11 @@ const DESCRIPTION_OPTIONS = [
   'Content not updated',
   'No signal',
   'Physical damage',
+  'Screen Flickers',
+  'Screen showing google verification login',
+  'Screen shows invalid response from cms',
+  'Screen stolen',
+  'Water damage',
   'Other'
 ]
 
@@ -55,9 +60,12 @@ export default function SupportTicketForm() {
   const navigate = useNavigate()
   const client = searchParams.get('client') || ''
 
+  // Initial screens array to reset to
+  const initialScreens = [{ name: '', description: '', otherDescription: '', photo: null, preview: null }]
+
   const [storeName, setStoreName] = useState('')
   const [multipleScreens, setMultipleScreens] = useState(false)
-  const [screens, setScreens] = useState([{ name: '', description: '', otherDescription: '', photo: null, preview: null }])
+  const [screens, setScreens] = useState(initialScreens)
   const [contactName, setContactName] = useState('')
   const [contactNumber, setContactNumber] = useState('')
   const [contactEmail, setContactEmail] = useState('')
@@ -78,7 +86,9 @@ export default function SupportTicketForm() {
   }, [])
 
   const validatePhone = useCallback((phone) => {
-    return /^[\d +()-]{7,}$/.test(phone)
+    // Phone must be 7+ digits after sanitisation
+    const digitsOnly = phone.replace(/\D/g, '')
+    return digitsOnly.length >= 7
   }, [])
 
   const validateForm = useCallback(() => {
@@ -257,6 +267,18 @@ export default function SupportTicketForm() {
     }
   }
 
+  // Reset form to initial state without navigating or reload
+  const resetForm = () => {
+    setTicketSubmitted(false)
+    setStoreName(client ? `${client} Test` : '')
+    setMultipleScreens(false)
+    setScreens(initialScreens)
+    setContactName('')
+    setContactNumber('')
+    setContactEmail('')
+    setErrors({})
+  }
+
   const inputProps = {
     bg: '#222',
     color: 'white',
@@ -294,7 +316,7 @@ export default function SupportTicketForm() {
           )}
           <Button
             colorScheme="blue"
-            onClick={() => window.location.reload()}
+            onClick={resetForm}     // <-- reset form here, no reload or navigate
             isDisabled={photosUploading}
             size="lg"
             w="full"
@@ -483,7 +505,11 @@ export default function SupportTicketForm() {
                 <Input
                   {...inputProps}
                   value={contactNumber}
-                  onChange={(e) => setContactNumber(e.target.value)}
+                  onChange={(e) => {
+                    // Sanitize input to digits only on every change
+                    const sanitized = e.target.value.replace(/\D/g, '')
+                    setContactNumber(sanitized)
+                  }}
                   placeholder="Phone number"
                   autoComplete="tel"
                   spellCheck={false}
