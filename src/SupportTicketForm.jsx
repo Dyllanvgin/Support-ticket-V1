@@ -48,7 +48,6 @@ const DESCRIPTION_OPTIONS = [
 const TICKET_BOARD_ID = '9575288798'
 const API_BASE_URL = 'https://support-ticket-backend-v1.onrender.com'
 
-// Pulse animation for submit button
 const pulse = keyframes`
   0% { box-shadow: 0 0 0 0 rgba(72,187,120, 0.7); }
   70% { box-shadow: 0 0 0 10px rgba(72,187,120, 0); }
@@ -93,7 +92,6 @@ export default function SupportTicketForm() {
   const validateForm = useCallback(() => {
     const newErrors = {}
 
-   
     if (!storeName.trim()) newErrors.storeName = 'Store name is required'
     if (!contactName.trim()) newErrors.contactName = 'Your name is required'
     if (!contactNumber.trim()) newErrors.contactNumber = 'Contact number is required'
@@ -104,7 +102,7 @@ export default function SupportTicketForm() {
     screens.forEach((screen, idx) => {
       if (!screen.name.trim()) newErrors[`screenName${idx}`] = 'Screen location is required'
       if (!screen.description) newErrors[`screenDescription${idx}`] = 'Description is required'
-      if (screen.description === 'Other' && !screen.otherDescription.trim()) newErrors[`screenOtherDescription${idx}`] = 'Please describe the issue'
+      // Removed the requirement for otherDescription
     })
 
     setErrors(newErrors)
@@ -127,19 +125,12 @@ export default function SupportTicketForm() {
   const handleScreenChange = (index, field, value) => {
     const newScreens = [...screens]
     newScreens[index][field] = value
-    if (field === 'description' && value !== 'Other') {
-      newScreens[index].otherDescription = ''
-      setErrors(prev => {
-        const copy = { ...prev }
-        delete copy[`screenOtherDescription${index}`]
-        return copy
-      })
-    }
     setScreens(newScreens)
     setErrors((prev) => {
       const copy = { ...prev }
       delete copy[`screenName${index}`]
       delete copy[`screenDescription${index}`]
+      delete copy[`screenOtherDescription${index}`]
       return copy
     })
   }
@@ -178,13 +169,12 @@ export default function SupportTicketForm() {
 
   async function createMainItem() {
     if (!storeName.trim()) throw new Error('Store name cannot be empty')
-    //if (!storeCode.trim()) throw new Error('Store code cannot be empty')
 
     const columnValuesObj = {
       email_mkssfg0w: { email: contactEmail, text: contactEmail },
-      phone_mkssfmma: contactNumber.replace(/\D/g, ''), // sanitized phone number without spaces/special chars
+      phone_mkssfmma: contactNumber.replace(/\D/g, ''),
       text_mkssz2ke: contactName,
-      text_mksv4188: storeCode // <-- Replace with actual store code column ID
+      text_mksv4188: storeCode
     }
 
     const response = await fetch(`${API_BASE_URL}/create-item`, {
@@ -202,8 +192,10 @@ export default function SupportTicketForm() {
   }
 
   async function createSubitem(parentId, screen) {
-    const subitemValuesObj = { text_mkss1h6r: screen.description || '' }
-    if (screen.description === 'Other') subitemValuesObj.text_mksswvza = screen.otherDescription || ''
+    const subitemValuesObj = { 
+      text_mkss1h6r: screen.description || '',
+      text_mksswvza: screen.otherDescription || ''
+    }
 
     const response = await fetch(`${API_BASE_URL}/create-subitem`, {
       method: 'POST',
@@ -346,7 +338,6 @@ export default function SupportTicketForm() {
         <Box maxW="600px" w="100%" p={6} bg="black" boxShadow="lg" borderRadius="lg">
           <form onSubmit={handleSubmit} noValidate>
             <VStack spacing={5} align="stretch" color="white">
-              {/* Store Code */}
               <FormControl isInvalid={!!errors.storeCode}>
                 <FormLabel>Store Code - if known</FormLabel>
                 <Input
@@ -360,7 +351,6 @@ export default function SupportTicketForm() {
                 <FormErrorMessage>{errors.storeCode}</FormErrorMessage>
               </FormControl>
 
-              {/* Store Name */}
               <FormControl isInvalid={!!errors.storeName} isRequired>
                 <FormLabel>
                   <Icon as={FiMonitor} mr={2} />
@@ -445,11 +435,14 @@ export default function SupportTicketForm() {
                     </Select>
                     <FormErrorMessage>{errors[`screenDescription${idx}`]}</FormErrorMessage>
 
-                    <Collapse in={screen.description === 'Other'} animateOpacity>
-                      <FormControl isInvalid={!!errors[`screenOtherDescription${idx}`]} isRequired mt={2}>
+                    <Collapse in={!!screen.description} animateOpacity>
+                      <FormControl 
+                        isInvalid={!!errors[`screenOtherDescription${idx}`]} 
+                        mt={2}
+                      >
                         <Textarea
                           {...descriptionInputProps}
-                          placeholder="Describe issue…"
+                          placeholder={screen.description === 'Other' ? "Describe issue..." : "Add any additional details (optional)..."}
                           value={screen.otherDescription}
                           onChange={(e) => handleScreenChange(idx, 'otherDescription', e.target.value)}
                           size="md"
@@ -530,11 +523,9 @@ export default function SupportTicketForm() {
                   {...inputProps}
                   value={contactNumber}
                   onChange={(e) => {
-                    // sanitize on input: allow only digits and plus sign optionally
                     const rawValue = e.target.value
                     const sanitized = rawValue.replace(/[^\d+]/g, '')
                     setContactNumber(sanitized)
-                    // Also clear errors on change
                     setErrors((prev) => {
                       const copy = { ...prev }
                       delete copy.contactNumber
