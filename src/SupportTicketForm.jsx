@@ -30,6 +30,12 @@ import {
 import { keyframes } from '@emotion/react'
 import { FiMonitor, FiUpload, FiPlus, FiTrash2, FiUser, FiPhone, FiMail } from 'react-icons/fi'
 
+const COMPANY_LOGO_URL = 'https://via.placeholder.com/150x50?text=Company+Logo'
+const COMPANY_NAME = "InteractiveMedia"
+const SUPPORT_EMAIL = "Support"
+const SUPPORT_PHONE = "021 851 0119"
+const BUSINESS_HOURS = "Monday-Friday: 8AM-5PM"
+
 const DESCRIPTION_OPTIONS = [
   'Screen not turning on',
   'Wrong content',
@@ -269,26 +275,26 @@ export default function SupportTicketForm() {
   }
 
   const inputProps = {
-    bg: '#222',
-    color: 'white',
-    borderColor: '#444',
-    _placeholder: { color: '#888' },
-    borderRadius: 'md',
-    fontSize: 'md',
-    px: 3,
-    py: 2,
-  }
+  bg: 'white',
+  color: 'black',
+  borderColor: '#ccc',
+  _placeholder: { color: '#666' },
+  borderRadius: 'md',
+  fontSize: 'md',
+  px: 3,
+  py: 2,
+}
 
   const descriptionInputProps = {
-    bg: '#ddd',
-    color: 'black',
-    borderColor: '#999',
-    _placeholder: { color: '#555' },
-    borderRadius: 'md',
-    fontSize: 'md',
-    px: 3,
-    py: 2,
-  }
+  bg: 'white',
+  color: 'black',
+  borderColor: '#ccc',
+  _placeholder: { color: '#666' },
+  borderRadius: 'md',
+  fontSize: 'md',
+  px: 3,
+  py: 2,
+}
 
   if (ticketSubmitted) {
     return (
@@ -334,10 +340,78 @@ export default function SupportTicketForm() {
 
   return (
     <>
-      <Center py={10} bg="#fb6520" minH="100vh" px={4}>
-        <Box maxW="600px" w="100%" p={6} bg="black" boxShadow="lg" borderRadius="lg">
+
+<Box
+  position="sticky"
+  top="0"
+  zIndex="10"
+  bg="white"
+  py={4}
+  borderBottom="1px solid #333"
+  px={4}
+>
+  <HStack
+    maxW="800px"
+    mx="auto"
+    w="100%"
+    justify="space-between"
+    align="center"
+    spacing={4}
+  >
+    {/* Left side: stacked logos */}
+    <VStack spacing={2} flexShrink={0}>
+      <Image
+        src="/Imagine-logo.png"
+        alt="Logo 1"
+        h={{ base: '45px', md: '50px' }}
+        objectFit="contain"
+      />
+      <Image
+        src="/Interactive-Media-logo.png"
+        alt="Logo 2"
+        h={{ base: '18px', md: '50px' }}
+        objectFit="contain"
+      />
+    </VStack>
+
+    {/* Right side: company info */}
+    <VStack
+      spacing={0}
+      align="flex-start"
+      flex="1"
+      px={2}
+    >
+      <Text
+        fontSize={{ base: 'md', md: 'lg' }}
+        fontWeight="bold"
+        userSelect="none"
+      >
+        {COMPANY_NAME}
+      </Text>
+      <Text
+        fontSize={{ base: 'sm', md: 'md' }}
+        userSelect="none"
+      >
+        {SUPPORT_EMAIL}
+      </Text>
+      <Text
+        fontSize={{ base: 'sm', md: 'md' }}
+        userSelect="none"
+      >
+        {SUPPORT_PHONE}
+      </Text>
+    </VStack>
+  </HStack>
+</Box>
+
+
+
+
+      <Box minH="100vh" bgGradient="linear(to-br, #f8601d, #f2bb39)">
+  <Center py={10} px={4}>
+    <Box maxW="600px" w="100%" p={6} bg="white" color="black" boxShadow="lg" borderRadius="lg">
           <form onSubmit={handleSubmit} noValidate>
-            <VStack spacing={5} align="stretch" color="white">
+            <VStack spacing={5} align="stretch">
               <FormControl isInvalid={!!errors.storeCode}>
                 <FormLabel>Store Code - if known</FormLabel>
                 <Input
@@ -378,14 +452,17 @@ export default function SupportTicketForm() {
 
               {screens.map((screen, idx) => (
                 <Box
-                  key={idx}
-                  p={4}
-                  borderWidth="1px"
-                  borderRadius="md"
-                  borderColor="#333"
-                  bg="#111"
-                  mb={4}
-                >
+  key={idx}
+  p={4}
+  borderWidth="1px"
+  borderRadius="md"
+  borderColor="#ccc"
+  bg="white"
+  mb={4}
+  color="black"
+>
+
+                
                   <HStack justify="space-between" mb={2}>
                     <Text fontWeight="semibold" fontSize="lg">
                       Screen {idx + 1}
@@ -570,6 +647,7 @@ export default function SupportTicketForm() {
           </form>
         </Box>
       </Center>
+      </Box>
       <Modal isOpen={isOpen} onClose={onClose} isCentered closeOnOverlayClick={false}>
         <ModalOverlay />
         <ModalContent bg="black">
