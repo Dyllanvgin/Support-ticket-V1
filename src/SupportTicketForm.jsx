@@ -57,9 +57,9 @@ const TICKET_BOARD_ID = '9575288798'
 const API_BASE_URL = 'https://support-ticket-backend-v1.onrender.com'
 
 const pulse = keyframes`
-  0% { box-shadow: 0 0 0 0 rgba(72,187,120, 0.7); }
-  70% { box-shadow: 0 0 0 10px rgba(72,187,120, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(72,187,120, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(128,128,128, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(128,128,128, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(128,128,128, 0); }
 `
 
 export default function SupportTicketForm() {
