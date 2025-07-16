@@ -302,7 +302,7 @@ if (ticketSubmitted) {
   return (
     <Box
       minH="100vh"
-      bgGradient="linear(to-br, #f8601d, #f2bb39)"
+      bgGradient="linear(to-bl, #f8601d, #f2bb39)"
       py={20}
       px={4}
       display="flex"
@@ -427,7 +427,7 @@ if (ticketSubmitted) {
 
 
 
-      <Box minH="100vh" bgGradient="linear(to-br, #f8601d, #f2bb39)">
+      <Box minH="100vh" bgGradient="linear(to-bl, #f8601d, #f2bb39)">
   <Center py={10} px={4}>
     <Box maxW="600px" w="100%" p={6} bg="white" color="black" boxShadow="lg" borderRadius="lg">
           <form onSubmit={handleSubmit} noValidate>
