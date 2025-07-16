@@ -35,6 +35,8 @@ const COMPANY_NAME = "InteractiveMedia"
 const SUPPORT_EMAIL = "Support"
 const SUPPORT_PHONE = "021 851 0119"
 const BUSINESS_HOURS = "Monday-Friday: 8AM-5PM"
+const COMPANY_LOGO_FILENAME = '/Interactive-Media-logo.png'
+
 
 const DESCRIPTION_OPTIONS = [
   'Screen not turning on',
@@ -296,47 +298,65 @@ export default function SupportTicketForm() {
   py: 2,
 }
 
-  if (ticketSubmitted) {
-    return (
-      <Center py={20} bg="#fb6520" minH="100vh" px={4}>
-        <VStack spacing={6} maxW="600px" w="100%">
-          <Text fontSize="3xl" fontWeight="bold" color="white" userSelect="none">
-            ✅ Ticket Submitted
-          </Text>
-          {photosUploading && (
-            <HStack spacing={2}>
-              <Spinner size="sm" color="white" />
-              <Text color="white">Uploading photos…</Text>
-            </HStack>
-          )}
-          <Button
-            colorScheme="blue"
-            onClick={resetForm}
-            isDisabled={photosUploading}
-            size="lg"
-            w="full"
-            mt={4}
-            _hover={{ boxShadow: '0 0 12px 3px #2b6cb0' }}
-            transition="box-shadow 0.3s ease"
-          >
-            Submit Another
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => navigate('/')}
-            isDisabled={photosUploading}
-            size="lg"
-            w="full"
-            mt={2}
-            _hover={{ bg: 'orange.400', color: 'black' }}
-            transition="background-color 0.3s ease"
-          >
-            Close Portal
-          </Button>
-        </VStack>
-      </Center>
-    )
-  }
+if (ticketSubmitted) {
+  return (
+    <Box
+      minH="100vh"
+      bgGradient="linear(to-br, #f8601d, #f2bb39)"
+      py={20}
+      px={4}
+      display="flex"
+      flexDirection="column"
+      alignItems="center"
+      justifyContent="center"
+    >
+      <Image
+        src={COMPANY_LOGO_FILENAME} // Your logo constant, e.g. '/Interactive-Media-logo.png'
+        alt="Company Logo"
+        mb={6}
+        maxH="60px"
+        userSelect="none"
+      />
+      <VStack spacing={6} maxW="600px" w="100%">
+        <Text fontSize="3xl" fontWeight="bold" color="white" userSelect="none">
+          ✅ Ticket Submitted
+        </Text>
+        {photosUploading && (
+          <HStack spacing={2}>
+            <Spinner size="sm" color="white" />
+            <Text color="white">Uploading photos…</Text>
+          </HStack>
+        )}
+       <Button
+  bg="black"
+  color="white"
+  onClick={resetForm}
+  isDisabled={photosUploading}
+  size="lg"
+  w="full"
+  mt={4}
+  _hover={{ bg: 'gray.800', boxShadow: 'none' }}
+  transition="background-color 0.3s ease"
+>
+  Submit Another
+</Button>
+
+        <Button
+          variant="outline"
+          onClick={() => navigate('/')}
+          isDisabled={photosUploading}
+          size="lg"
+          w="full"
+          mt={2}
+          _hover={{ bg: 'orange.400', color: 'black' }}
+          transition="background-color 0.3s ease"
+        >
+          Close Portal
+        </Button>
+      </VStack>
+    </Box>
+  )
+}
 
   return (
     <>
@@ -633,16 +653,18 @@ export default function SupportTicketForm() {
               </FormControl>
 
               <Button
-                type="submit"
-                colorScheme="green"
-                size="lg"
-                w="full"
-                mt={4}
-                animation={`${pulse} 2s infinite`}
-                _hover={{ animation: 'none', boxShadow: '0 0 12px 3px #48bb78' }}
-              >
-                Submit Ticket
-              </Button>
+  type="submit"
+  bg="black"
+  color="white"
+  size="lg"
+  w="full"
+  mt={4}
+  animation={`${pulse} 2s infinite`}
+  _hover={{ bg: 'gray.800', boxShadow: 'none', animation: 'none' }}
+>
+  Submit Ticket
+</Button>
+
             </VStack>
           </form>
         </Box>
