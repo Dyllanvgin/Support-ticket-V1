@@ -67,11 +67,10 @@ export default function SupportTicketForm() {
   const navigate = useNavigate()
   const client = searchParams.get('client') || ''
 
-  const initialScreens = [{ name: '', description: '', otherDescription: '', photo: null, preview: null }]
+  const initialScreens = []
 
   const [storeCode, setStoreCode] = useState('')
   const [storeName, setStoreName] = useState('')
-  const [multipleScreens, setMultipleScreens] = useState(false)
   const [screens, setScreens] = useState(initialScreens)
   const [contactName, setContactName] = useState('')
   const [contactNumber, setContactNumber] = useState('')
@@ -433,7 +432,7 @@ if (ticketSubmitted) {
           <form onSubmit={handleSubmit} noValidate>
             <VStack spacing={5} align="stretch">
               <FormControl isInvalid={!!errors.storeCode}>
-                <FormLabel>Store Code - if known</FormLabel>
+                <FormLabel fontWeight="semibold" fontSize="sm">Store Code - if known</FormLabel>
                 <Input
                   {...inputProps}
                   value={storeCode}
@@ -461,139 +460,132 @@ if (ticketSubmitted) {
                 <FormErrorMessage>{errors.storeName}</FormErrorMessage>
               </FormControl>
 
-              <Checkbox
-                isChecked={multipleScreens}
-                onChange={(e) => setMultipleScreens(e.target.checked)}
-                colorScheme="orange"
-                size="lg"
-              >
-                Multiple Screens
-              </Checkbox>
 
-              {screens.map((screen, idx) => (
-                <Box
-  key={idx}
-  p={4}
-  borderWidth="1px"
-  borderRadius="md"
-  borderColor="#ccc"
-  bg="white"
-  mb={4}
-  color="black"
+             {screens.length > 0 && screens.map((screen, idx) => (
+  <Box
+    key={idx}
+    p={4}
+    borderWidth="1px"
+    borderRadius="md"
+    borderColor="#ccc"
+    bg="white"
+    mb={4}
+    color="black"
+  >
+    {/* Top Header and Remove button */}
+    <HStack justify="space-between" mb={2}>
+      <Text fontWeight="semibold" fontSize="lg">
+        Screen {idx + 1}
+      </Text>
+      {screens.length > 1 && (
+        <Button
+          size="xs"
+          colorScheme="red"
+          onClick={() => removeScreen(idx)}
+          aria-label={`Remove Screen ${idx + 1}`}
+          _hover={{ transform: 'scale(1.15)', boxShadow: '0 0 8px red' }}
+          transition="transform 0.2s ease, box-shadow 0.2s ease"
+        >
+          <Icon as={FiTrash2} />
+        </Button>
+      )}
+    </HStack>
+
+    {/* Screen Location */}
+    <FormControl isInvalid={!!errors[`screenName${idx}`]} isRequired mb={3}>
+      <FormLabel fontSize="md">Screen Location</FormLabel>
+      <Input
+        {...inputProps}
+        value={screen.name}
+        onChange={(e) => handleScreenChange(idx, 'name', e.target.value)}
+        placeholder="e.g. Entrance Left"
+        autoComplete="off"
+        spellCheck={false}
+        size="md"
+      />
+      <FormErrorMessage>{errors[`screenName${idx}`]}</FormErrorMessage>
+    </FormControl>
+
+    {/* Description Dropdown */}
+    <FormControl isInvalid={!!errors[`screenDescription${idx}`]} isRequired mb={3}>
+      <FormLabel fontSize="md">Issue Description</FormLabel>
+      <Select
+        {...descriptionInputProps}
+        value={screen.description}
+        onChange={(e) => handleScreenChange(idx, 'description', e.target.value)}
+        placeholder="Select issue"
+        size="md"
+      >
+        {DESCRIPTION_OPTIONS.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
+      </Select>
+      <FormErrorMessage>{errors[`screenDescription${idx}`]}</FormErrorMessage>
+
+      <Collapse in={!!screen.description} animateOpacity>
+        <FormControl 
+          isInvalid={!!errors[`screenOtherDescription${idx}`]} 
+          mt={2}
+        >
+          <Textarea
+            {...descriptionInputProps}
+            placeholder={screen.description === 'Other' ? "Describe issue..." : "Add any additional details (optional)..." }
+            value={screen.otherDescription}
+            onChange={(e) => handleScreenChange(idx, 'otherDescription', e.target.value)}
+            size="md"
+            rows={3}
+          />
+          <FormErrorMessage>{errors[`screenOtherDescription${idx}`]}</FormErrorMessage>
+        </FormControl>
+      </Collapse>
+    </FormControl>
+
+    {/* Photo Upload */}
+    <FormControl mb={3}>
+      <FormLabel fontSize="md">
+        <Icon as={FiUpload} mr={2} />
+        Photo
+      </FormLabel>
+      <Input
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={(e) => handlePhotoChange(idx, e.target.files[0])}
+        {...inputProps}
+        size="md"
+      />
+      {screen.preview && (
+        <Image
+          src={screen.preview}
+          alt={`Preview screen ${idx + 1}`}
+          maxH="150px"
+          mt={2}
+          borderRadius="md"
+          objectFit="contain"
+          loading="lazy"
+          draggable={false}
+          userSelect="none"
+        />
+      )}
+    </FormControl>
+  </Box>
+))}
+
+              <Button
+  leftIcon={<FiPlus />}
+  onClick={addScreen}
+  colorScheme="blue"
+  size="md"
+  w="full"
+  mt={2}
+  _hover={{ transform: 'scale(1.05)', boxShadow: '0 0 8px #3182ce' }}
+  transition="transform 0.2s ease"
 >
-
-                
-                  <HStack justify="space-between" mb={2}>
-                    <Text fontWeight="semibold" fontSize="lg">
-                      Screen {idx + 1}
-                    </Text>
-                    {screens.length > 1 && (
-                      <Button
-                        size="xs"
-                        colorScheme="red"
-                        onClick={() => removeScreen(idx)}
-                        aria-label={`Remove Screen ${idx + 1}`}
-                        _hover={{ transform: 'scale(1.15)', boxShadow: '0 0 8px red' }}
-                        transition="transform 0.2s ease, box-shadow 0.2s ease"
-                      >
-                        <Icon as={FiTrash2} />
-                      </Button>
-                    )}
-                  </HStack>
-
-                  <FormControl isInvalid={!!errors[`screenName${idx}`]} isRequired mb={3}>
-                    <FormLabel fontSize="md">Screen Location</FormLabel>
-                    <Input
-                      {...inputProps}
-                      value={screen.name}
-                      onChange={(e) => handleScreenChange(idx, 'name', e.target.value)}
-                      placeholder="e.g. Entrance Left"
-                      autoComplete="off"
-                      spellCheck={false}
-                      size="md"
-                    />
-                    <FormErrorMessage>{errors[`screenName${idx}`]}</FormErrorMessage>
-                  </FormControl>
-
-                  <FormControl isInvalid={!!errors[`screenDescription${idx}`]} isRequired mb={3}>
-                    <FormLabel fontSize="md">Issue Description</FormLabel>
-                    <Select
-                      {...descriptionInputProps}
-                      value={screen.description}
-                      onChange={(e) => handleScreenChange(idx, 'description', e.target.value)}
-                      placeholder="Select issue"
-                      size="md"
-                    >
-                      {DESCRIPTION_OPTIONS.map((opt) => (
-                        <option key={opt} value={opt}>
-                          {opt}
-                        </option>
-                      ))}
-                    </Select>
-                    <FormErrorMessage>{errors[`screenDescription${idx}`]}</FormErrorMessage>
-
-                    <Collapse in={!!screen.description} animateOpacity>
-                      <FormControl 
-                        isInvalid={!!errors[`screenOtherDescription${idx}`]} 
-                        mt={2}
-                      >
-                        <Textarea
-                          {...descriptionInputProps}
-                          placeholder={screen.description === 'Other' ? "Describe issue..." : "Add any additional details (optional)..."}
-                          value={screen.otherDescription}
-                          onChange={(e) => handleScreenChange(idx, 'otherDescription', e.target.value)}
-                          size="md"
-                          rows={3}
-                        />
-                        <FormErrorMessage>{errors[`screenOtherDescription${idx}`]}</FormErrorMessage>
-                      </FormControl>
-                    </Collapse>
-                  </FormControl>
-
-                  <FormControl mb={3}>
-                    <FormLabel fontSize="md">
-                      <Icon as={FiUpload} mr={2} />
-                      Photo
-                    </FormLabel>
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      onChange={(e) => handlePhotoChange(idx, e.target.files[0])}
-                      {...inputProps}
-                      size="md"
-                    />
-                    {screen.preview && (
-                      <Image
-                        src={screen.preview}
-                        alt={`Preview screen ${idx + 1}`}
-                        maxH="150px"
-                        mt={2}
-                        borderRadius="md"
-                        objectFit="contain"
-                        loading="lazy"
-                        draggable={false}
-                        userSelect="none"
-                      />
-                    )}
-                  </FormControl>
-                </Box>
-              ))}
-
-              {multipleScreens && (
-                <Button
-                  leftIcon={<FiPlus />}
-                  onClick={addScreen}
-                  colorScheme="blue"
-                  size="md"
-                  w="full"
-                  mt={2}
-                  _hover={{ transform: 'scale(1.05)', boxShadow: '0 0 8px #3182ce' }}
-                  transition="transform 0.2s ease"
-                >
-                  Add Screen
-                </Button>
-              )}
+  Add Screen
+</Button>
+              
 
               <FormControl isInvalid={!!errors.contactName} isRequired>
                 <FormLabel>
