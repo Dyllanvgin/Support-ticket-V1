@@ -67,7 +67,7 @@ export default function SupportTicketForm() {
   const navigate = useNavigate()
   const client = searchParams.get('client') || ''
 
-  const initialScreens = []
+  const initialScreens = [{ name: '', description: '', otherDescription: '', photo: null, preview: null }]
 
   const [storeCode, setStoreCode] = useState('')
   const [storeName, setStoreName] = useState('')
@@ -107,10 +107,13 @@ export default function SupportTicketForm() {
     else if (!validateEmail(contactEmail)) newErrors.contactEmail = 'Invalid email format'
 
     screens.forEach((screen, idx) => {
-      if (!screen.name.trim()) newErrors[`screenName${idx}`] = 'Screen location is required'
-      if (!screen.description) newErrors[`screenDescription${idx}`] = 'Description is required'
-      // Removed the requirement for otherDescription
-    })
+  // Only enforce required fields on the first screen
+  const isFirst = idx === 0
+  if (isFirst || screen.name.trim() || screen.description) {
+    if (!screen.name.trim()) newErrors[`screenName${idx}`] = 'Screen location is required'
+    if (!screen.description) newErrors[`screenDescription${idx}`] = 'Description is required'
+  }
+})
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
